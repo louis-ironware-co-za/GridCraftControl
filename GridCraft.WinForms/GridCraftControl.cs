@@ -17,9 +17,23 @@ public class GridCraftControl : UserControl
     private Process? _process;
     private IntPtr _child;
 
-    /// <summary>Path to gridcraft.exe.</summary>
+    /// <summary>
+    /// Path to gridcraft.exe. A relative path (the default, "gridcraft.exe") is taken from the
+    /// application's own folder, not the current directory: an app started from a shortcut whose
+    /// "Start in" is elsewhere still finds the gridcraft.exe shipped beside it.
+    /// </summary>
     [Category("GridCraft"), DefaultValue("gridcraft.exe")]
     public string ExePath { get; set; } = "gridcraft.exe";
+
+    /// <summary>
+    /// The full path <see cref="ExePath"/> stands for: as given when rooted, otherwise under
+    /// <paramref name="appFolder"/> (the application's folder, <see cref="AppContext.BaseDirectory"/>).
+    /// </summary>
+    public static string ResolveExePath(string? exePath, string? appFolder = null)
+    {
+        var path = string.IsNullOrWhiteSpace(exePath) ? "gridcraft.exe" : exePath.Trim();
+        return Path.GetFullPath(Path.IsPathFullyQualified(path) ? path : Path.Combine(appFolder ?? AppContext.BaseDirectory, path));
+    }
 
     /// <summary>Optional sample workbook to open at start: "sales", "budget" or "grades".</summary>
     [Category("GridCraft"), DefaultValue(null)]
@@ -86,12 +100,13 @@ public class GridCraftControl : UserControl
     {
         if (DesignMode) return;
         if (IsRunning) throw new InvalidOperationException("GridCraft is already running in this control.");
-        if (!File.Exists(ExePath)) throw new FileNotFoundException("gridcraft.exe not found.", ExePath);
+        var exe = ResolveExePath(ExePath);
+        if (!File.Exists(exe)) throw new FileNotFoundException($"gridcraft.exe not found at {exe}.", exe);
 
         var port = FreeLoopbackPort();
         var token = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
 
-        var psi = new ProcessStartInfo(ExePath) { UseShellExecute = false, WorkingDirectory = Path.GetDirectoryName(Path.GetFullPath(ExePath)) };
+        var psi = new ProcessStartInfo(exe) { UseShellExecute = false, WorkingDirectory = Path.GetDirectoryName(exe) };
         psi.ArgumentList.Add("--control");
         psi.ArgumentList.Add(port.ToString());
         if (Embedded) psi.ArgumentList.Add("--embedded");

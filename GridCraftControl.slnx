@@ -1,4 +1,5 @@
 <Solution>
   <Project Path="GridCraft.Demo/GridCraft.Demo.csproj" />
+  <Project Path="GridCraft.WinForms.Tests/GridCraft.WinForms.Tests.csproj" />
   <Project Path="GridCraft.WinForms/GridCraft.WinForms.csproj" />
 </Solution>
