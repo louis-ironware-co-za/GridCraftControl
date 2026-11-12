@@ -71,6 +71,26 @@ public class GridCraftControl : UserControl
         }
     }
 
+    private bool? _dark;
+
+    /// <summary>
+    /// GridCraft's dark theme: true dark, false light, null (the default) as GridCraft chooses
+    /// (it follows Windows). A host with its own theme sets this to match it. Set before start,
+    /// it is sent as soon as GridCraft connects; set while it runs, it takes effect at once
+    /// (control channel <c>ui.set {dark}</c>).
+    /// </summary>
+    [Category("GridCraft"), DefaultValue(null)]
+    public bool? Dark
+    {
+        get => _dark;
+        set
+        {
+            if (_dark == value) return;
+            _dark = value;
+            if (Client != null && value is bool dark) _ = Client.CallAsync("ui.set", new { dark });
+        }
+    }
+
     /// <summary>Opens GridCraft's print page: preview, printer and page settings, and its Print button.</summary>
     public Task ShowPrintPageAsync() =>
         Client?.ExecuteAsync("ui.backstage", new { page = "print" }) ?? Task.CompletedTask;
@@ -123,6 +143,7 @@ public class GridCraftControl : UserControl
         _child = await WaitForMainWindowAsync(_process, StartTimeout, ct);
         EmbedWindow(_child);
         Client = await GridCraftClient.ConnectAsync(port, token, StartTimeout, ct);
+        if (Dark is bool dark) await Client.CallAsync("ui.set", new { dark }, ct);
     }
 
     /// <summary>
