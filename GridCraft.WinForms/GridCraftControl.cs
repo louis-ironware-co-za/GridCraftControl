@@ -91,6 +91,31 @@ public class GridCraftControl : UserControl
         }
     }
 
+    private Color? _accent;
+
+    /// <summary>
+    /// GridCraft's accent colour - the File page's side panel, links, switches and selected items -
+    /// in place of its green (SARS-Logbook, 2026-11-13: "Change this green to match the SLB
+    /// theme"). Null (the default) keeps the green. Sent as soon as GridCraft connects; changed
+    /// while it runs, it takes effect at once (control channel <c>ui.set {accent}</c>). The
+    /// sheet's own cell selection keeps its colour. Needs a gridcraft.exe that knows the setting.
+    /// </summary>
+    [Category("GridCraft"), DefaultValue(null)]
+    public Color? Accent
+    {
+        get => _accent;
+        set
+        {
+            if (_accent == value) return;
+            _accent = value;
+            if (Client != null) _ = Client.CallAsync("ui.set", new { accent = Hex(value) });
+        }
+    }
+
+    /// <summary>"#RRGGBB", or null for none.</summary>
+    internal static string? Hex(Color? colour) =>
+        colour is { } c ? $"#{c.R:X2}{c.G:X2}{c.B:X2}" : null;
+
     private bool _showFileClose = true;
 
     /// <summary>
@@ -167,6 +192,7 @@ public class GridCraftControl : UserControl
         Client = await GridCraftClient.ConnectAsync(port, token, StartTimeout, ct);
         if (Dark is bool dark) await Client.CallAsync("ui.set", new { dark }, ct);
         if (!ShowFileClose) await Client.CallAsync("ui.set", new { fileClose = false }, ct);
+        if (Accent is not null) await Client.CallAsync("ui.set", new { accent = Hex(Accent) }, ct);
     }
 
     /// <summary>
