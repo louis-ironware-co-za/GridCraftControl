@@ -91,6 +91,28 @@ public class GridCraftControl : UserControl
         }
     }
 
+    private bool _showFileClose = true;
+
+    /// <summary>
+    /// Close on GridCraft's File page, which closes the workbook. A host that owns the workbook
+    /// turns it off (SARS-Logbook, 2026-11-13: closing the print preview with the Close beside
+    /// Print closed the logbook and asked to save it). Back and Escape still leave the File page.
+    /// Sent as soon as GridCraft connects; changed while it runs, it takes effect at once
+    /// (control channel <c>ui.set {fileClose}</c>). Needs a gridcraft.exe that knows the setting;
+    /// an older one ignores it.
+    /// </summary>
+    [Category("GridCraft"), DefaultValue(true)]
+    public bool ShowFileClose
+    {
+        get => _showFileClose;
+        set
+        {
+            if (_showFileClose == value) return;
+            _showFileClose = value;
+            if (Client != null) _ = Client.CallAsync("ui.set", new { fileClose = value });
+        }
+    }
+
     /// <summary>Opens GridCraft's print page: preview, printer and page settings, and its Print button.</summary>
     public Task ShowPrintPageAsync() =>
         Client?.ExecuteAsync("ui.backstage", new { page = "print" }) ?? Task.CompletedTask;
@@ -144,6 +166,7 @@ public class GridCraftControl : UserControl
         EmbedWindow(_child);
         Client = await GridCraftClient.ConnectAsync(port, token, StartTimeout, ct);
         if (Dark is bool dark) await Client.CallAsync("ui.set", new { dark }, ct);
+        if (!ShowFileClose) await Client.CallAsync("ui.set", new { fileClose = false }, ct);
     }
 
     /// <summary>
